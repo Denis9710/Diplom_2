@@ -30,9 +30,8 @@ wheels/
 .pytest_cache/
 .cache/
 
-# Allure
-allure-results/
-reports/allure-results/
+# Allure - РАЗРЕШАЕМ allure-results для загрузки
+# allure-results/
 
 # IDE
 .idea/
