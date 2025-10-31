@@ -63,4 +63,4 @@ class DataGenerator:
             "password": self.generate_password(),
             "name": ""
         }
-
+    

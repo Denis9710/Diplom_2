@@ -1,5 +1,6 @@
 import pytest
 import allure
+import json
 from helpers.api_client import StellarBurgersAPI
 from helpers.data_generator import DataGenerator
 from helpers.api_data import ApiData
@@ -23,6 +24,14 @@ def user_credentials(data_generator):
     return data_generator.generate_user_data()
 
 
+def _parse_response_json(response):
+    """Вспомогательная функция для парсинга JSON ответа"""
+    try:
+        return response.json()
+    except (ValueError, json.JSONDecodeError):
+        return {"message": f"Invalid JSON response: {response.text}"}
+
+
 @pytest.fixture
 def registered_user(api_client, user_credentials):
     """Фикстура для успешно созданного пользователя с cleanup"""
@@ -35,10 +44,16 @@ def registered_user(api_client, user_credentials):
                 name=user_credentials["name"]
             )
         
+        # Обработка network error
+        if response.status_code == ApiData.NETWORK_ERROR:
+            pytest.fail(f"Network error: {response.text}")
+        
         assert response.status_code == ApiData.HTTP_OK, f"Не удалось создать пользователя: {response.text}"
         
-        response_data = response.json()
+        response_data = _parse_response_json(response)
         token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
+        assert token is not None, "Токен не был получен при регистрации"
+        
         user_data = {
             **user_credentials,
             "token": token,
@@ -66,6 +81,9 @@ def authorized_user(api_client, user_credentials):
                 name=user_credentials["name"]
             )
             
+            if response.status_code == ApiData.NETWORK_ERROR:
+                pytest.fail(f"Network error during registration: {response.text}")
+            
             assert response.status_code == ApiData.HTTP_OK, "Не удалось создать пользователя"
             
             # Авторизуемся
@@ -74,13 +92,18 @@ def authorized_user(api_client, user_credentials):
                 password=user_credentials["password"]
             )
             
+            if login_response.status_code == ApiData.NETWORK_ERROR:
+                pytest.fail(f"Network error during login: {login_response.text}")
+            
             assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
+            
+            token = api_client.token
+            assert token is not None, "Токен не был получен при авторизации"
             
             user_data = {
                 **user_credentials,
-                "token": api_client.token
+                "token": token
             }
-            token = api_client.token
             
             yield user_data
             
@@ -92,7 +115,7 @@ def authorized_user(api_client, user_credentials):
 
 @pytest.fixture
 def existing_user_credentials(registered_user):
-    """Фикстура для данных существующего пользователя"""
+    """Фикстура для данных существующего пользователя (созданного через API)"""
     return {
         "email": registered_user["email"],
         "password": registered_user["password"],
@@ -101,22 +124,31 @@ def existing_user_credentials(registered_user):
 
 
 @pytest.fixture(scope="session")
-def ingredients_list(api_client):
+def ingredients_list():
     """Фикстура для получения списка ингредиентов"""
+    client = StellarBurgersAPI()
     with allure.step("Получить список ингредиентов"):
-        response = api_client.get_ingredients()
+        response = client.get_ingredients()
     
-    assert response.status_code == ApiData.HTTP_OK, f"Не удалось получить ингредиенты: {response.status_code}"
+    if response.status_code == ApiData.NETWORK_ERROR:
+        pytest.fail(f"Network error getting ingredients: {response.text}")
     
-    response_data = response.json()
-    ingredients_data = response_data.get(ApiData.KEY_DATA, [])
-    return ingredients_data
+    if response.status_code != ApiData.HTTP_OK:
+        pytest.fail(f"Не удалось получить ингредиенты: {response.status_code}")
+    
+    try:
+        response_data = response.json()
+        ingredients_data = response_data.get(ApiData.KEY_DATA, [])
+        return ingredients_data
+    except (ValueError, json.JSONDecodeError):
+        pytest.fail("Невалидный JSON в ответе ингредиентов")
 
 
 @pytest.fixture
 def valid_ingredients(ingredients_list):
     """Фикстура для получения валидных ID ингредиентов"""
-    assert len(ingredients_list) >= 2, "Недостаточно ингредиентов для теста"
+    if len(ingredients_list) < 2:
+        pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
     return [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
 
 
@@ -168,4 +200,5 @@ def add_allure_environment(request):
         allure.dynamic.tag("positive")
     if "negative" in markers:
         allure.dynamic.tag("negative")
+
         

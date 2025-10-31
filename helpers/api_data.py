@@ -40,4 +40,7 @@ class ApiData:
     MIN_PASSWORD_LENGTH = 6
     MAX_PASSWORD_LENGTH = 20
     
+    # Custom status codes for network errors
+    NETWORK_ERROR = 0
+
     

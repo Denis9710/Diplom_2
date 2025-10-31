@@ -19,9 +19,12 @@ class TestLoginUser:
                 password=existing_user_credentials["password"]
             )
         
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_OK, \
-                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
+                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
         
         with allure.step("Проверить структуру ответа"):
             response_data = response.json()
@@ -45,6 +48,9 @@ class TestLoginUser:
                 email=user_data["email"],
                 password=user_data["password"]
             )
+        
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
@@ -70,6 +76,9 @@ class TestLoginUser:
                 password=wrong_password
             )
         
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
@@ -94,6 +103,9 @@ class TestLoginUser:
                 password=existing_user_credentials["password"]
             )
         
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
@@ -105,4 +117,5 @@ class TestLoginUser:
         
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
+
             

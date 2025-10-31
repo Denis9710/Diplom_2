@@ -19,9 +19,12 @@ class TestCreateOrder:
                 token=authorized_user["token"]
             )
         
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_OK, \
-                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
+                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
         
         with allure.step("Проверить структуру ответа"):
             response_data = response.json()
@@ -39,6 +42,9 @@ class TestCreateOrder:
                 ingredients=valid_ingredients,
                 token=None
             )
+        
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_OK, \
@@ -59,6 +65,9 @@ class TestCreateOrder:
                 ingredients=valid_ingredients,
                 token=authorized_user["token"]
             )
+        
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_OK, \
@@ -81,6 +90,9 @@ class TestCreateOrder:
                 token=authorized_user["token"]
             )
         
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
@@ -90,20 +102,45 @@ class TestCreateOrder:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.NO_INGREDIENTS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
     
-    @allure.title("Создание заказа с неверным хешем ингредиентов")
-    @allure.description("Тест проверяет ошибку при создании заказа с невалидными ингредиентами")
+    @allure.title("Создание заказа с неверным хешем ингредиентов - 400 ошибка")
+    @allure.description("Тест проверяет ошибку 400 при создании заказа с невалидными ингредиентами")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.negative
-    def test_create_order_invalid_ingredients_error(self, api_client, authorized_user, invalid_ingredients):
+    def test_create_order_invalid_ingredients_bad_request(self, api_client, authorized_user, invalid_ingredients):
         with allure.step("Создать заказ с невалидными ингредиентами"):
             response = api_client.create_order(
                 ingredients=invalid_ingredients,
                 token=authorized_user["token"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
+        with allure.step("Проверить статус код ответа 400"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
+        
+        with allure.step("Проверить наличие ошибки в ответе"):
+            response_data = response.json()
+            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
+
+    @allure.title("Создание заказа с неверным хешем ингредиентов - 500 ошибка")
+    @allure.description("Тест проверяет ошибку 500 при создании заказа с невалидными ингредиентами")
+    @allure.severity(allure.severity_level.NORMAL)
+    @pytest.mark.negative
+    def test_create_order_invalid_ingredients_internal_error(self, api_client, authorized_user, invalid_ingredients):
+        with allure.step("Создать заказ с невалидными ингредиентами"):
+            response = api_client.create_order(
+                ingredients=invalid_ingredients,
+                token=authorized_user["token"]
+            )
+        
+        with allure.step("Проверить что нет network error"):
+            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
+        
+        with allure.step("Проверить статус код ответа 500"):
+            assert response.status_code == ApiData.HTTP_INTERNAL_ERROR, \
+                f"Ожидался статус {ApiData.HTTP_INTERNAL_ERROR}, получен {response.status_code}"
         
         with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()

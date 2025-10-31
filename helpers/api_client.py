@@ -1,5 +1,6 @@
 import requests
 import allure
+from requests.models import Response
 from helpers.urls import Urls
 from helpers.api_data import ApiData
 
@@ -12,17 +13,30 @@ class StellarBurgersAPI:
         self.session = requests.Session()
         self.token = None
     
+    def _handle_request(self, method, url, **kwargs):
+        """Обработчик запросов с обработкой исключений"""
+        try:
+            if 'timeout' not in kwargs:
+                kwargs['timeout'] = 10
+            response = self.session.request(method, url, **kwargs)
+            return response
+        except requests.RequestException as e:
+            # Создаем mock response с ошибкой сети
+            response = Response()
+            response.status_code = ApiData.NETWORK_ERROR
+            response._content = str.encode(f"Network error: {e}")
+            return response
+    
     @allure.step("Регистрация пользователя")
     def register_user(self, email, password, name):
         """Регистрация нового пользователя"""
         payload = {
-            "email": email,
-            "password": password,
-            "name": name
+            "email": email or "",
+            "password": password or "",
+            "name": name or ""
         }
         
-        response = self.session.post(self.urls.REGISTER, json=payload)
-        return response
+        return self._handle_request('POST', self.urls.REGISTER, json=payload)
     
     @allure.step("Авторизация пользователя")
     def login_user(self, email, password):
@@ -32,13 +46,17 @@ class StellarBurgersAPI:
             "password": password
         }
         
-        response = self.session.post(self.urls.LOGIN, json=payload)
+        response = self._handle_request('POST', self.urls.LOGIN, json=payload)
         
-        try:
-            response_data = response.json()
-            self.token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
-        except ValueError:
-            self.token = None
+        # Сбрасываем токен при любой ошибке
+        self.token = None
+        
+        if response.status_code == ApiData.HTTP_OK:
+            try:
+                response_data = response.json()
+                self.token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
+            except ValueError:
+                pass  # Токен остается None
         
         return response
     
@@ -49,12 +67,7 @@ class StellarBurgersAPI:
             return None
             
         headers = {"Authorization": f"Bearer {token}"}
-        try:
-            response = self.session.delete(self.urls.USER, headers=headers)
-            return response
-        except requests.RequestException as e:
-            print(f"Error deleting user: {e}")
-            return None
+        return self._handle_request('DELETE', self.urls.USER, headers=headers)
     
     @allure.step("Создание заказа")
     def create_order(self, ingredients, token=None):
@@ -67,19 +80,20 @@ class StellarBurgersAPI:
             "ingredients": ingredients
         }
         
-        response = self.session.post(self.urls.ORDERS, json=payload, headers=headers)
-        return response
+        return self._handle_request('POST', self.urls.ORDERS, json=payload, headers=headers)
     
     @allure.step("Получение списка ингредиентов")
     def get_ingredients(self):
         """Получение списка ингредиентов"""
-        response = self.session.get(self.urls.INGREDIENTS)
-        return response
+        return self._handle_request('GET', self.urls.INGREDIENTS)
     
     @allure.step("Получение валидных ID ингредиентов")
     def get_valid_ingredients(self):
         """Получение валидных ID ингредиентов"""
         response = self.get_ingredients()
+        
+        if response.status_code != ApiData.HTTP_OK:
+            return []
         
         try:
             response_data = response.json()
@@ -91,4 +105,5 @@ class StellarBurgersAPI:
             return valid_ingredients
         except (ValueError, KeyError):
             return []
+        
         
