@@ -14,6 +14,7 @@ class MockStellarBurgersAPI:
         self.urls = Urls()
         self.token = None
         self._mock_data = {}
+        self._registered_users = set()
     
     def _create_mock_response(self, status_code, json_data):
         """Создает мок-ответ"""
@@ -33,22 +34,22 @@ class MockStellarBurgersAPI:
             )
         
         # Проверяем не существует ли уже пользователь
-        user_key = f"{email}_{password}_{name}"
-        if user_key in self._mock_data:
+        if email in self._registered_users:
             return self._create_mock_response(
                 ApiData.HTTP_FORBIDDEN,
                 MockResponses.USER_EXISTS_ERROR
             )
         
         # Создаем пользователя
-        self._mock_data[user_key] = {
+        self._registered_users.add(email)
+        self._mock_data[email] = {
             "email": email,
             "password": password, 
             "name": name
         }
         
         # Генерируем токен
-        token = f"mock_token_{user_key}"
+        token = f"mock_token_{email}_{password}_{name}"
         self.token = token
         
         response_data = MockResponses.SUCCESSFUL_REGISTRATION.copy()
@@ -61,28 +62,25 @@ class MockStellarBurgersAPI:
     @allure.step("Авторизация пользователя (MOCK)")
     def login_user(self, email, password):
         """Мок авторизации пользователя"""
-        # Ищем пользователя
-        user_found = False
-        for user_key in self._mock_data:
-            user_data = self._mock_data[user_key]
-            if user_data["email"] == email and user_data["password"] == password:
-                user_found = True
-                break
+        # Сбрасываем токен при любой попытке входа
+        self.token = None
         
-        if not user_found:
+        # Ищем пользователя
+        user_data = self._mock_data.get(email)
+        if not user_data or user_data["password"] != password:
             return self._create_mock_response(
                 ApiData.HTTP_UNAUTHORIZED,
                 MockResponses.INVALID_CREDENTIALS_ERROR
             )
         
         # Генерируем токен
-        token = f"mock_token_{email}_{password}"
+        token = f"mock_token_{email}_{password}_{user_data['name']}"
         self.token = token
         
         response_data = MockResponses.SUCCESSFUL_LOGIN.copy()
         response_data["accessToken"] = token
         response_data["user"]["email"] = email
-        response_data["user"]["name"] = self._mock_data[list(self._mock_data.keys())[0]]["name"]
+        response_data["user"]["name"] = user_data["name"]
         
         return self._create_mock_response(ApiData.HTTP_OK, response_data)
     
@@ -93,9 +91,12 @@ class MockStellarBurgersAPI:
             return self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
         
         # Удаляем пользователя по токену
-        for user_key in list(self._mock_data.keys()):
-            if f"mock_token_{user_key}" == token:
-                del self._mock_data[user_key]
+        for email in list(self._mock_data.keys()):
+            user_data = self._mock_data[email]
+            expected_token = f"mock_token_{email}_{user_data['password']}_{user_data['name']}"
+            if expected_token == token:
+                del self._mock_data[email]
+                self._registered_users.discard(email)
                 break
         
         self.token = None
@@ -111,16 +112,14 @@ class MockStellarBurgersAPI:
             )
         
         # Проверяем валидность ингредиентов
-        valid_ingredients = ["60666c42cc7b410027a1a9b1", "60666c42cc7b410027a1a9b5", "60666c42cc7b410027a1a9b6"]
         for ingredient in ingredients:
-            if ingredient not in valid_ingredients and not ingredient.startswith("invalid_"):
+            if ingredient.startswith("invalid_"):
                 return self._create_mock_response(
                     ApiData.HTTP_BAD_REQUEST,
                     MockResponses.INVALID_INGREDIENTS_ERROR
                 )
         
         response_data = MockResponses.SUCCESSFUL_ORDER.copy()
-        # Обновляем номер заказа для уникальности
         response_data["order"]["number"] = len(self._mock_data) + 1000
         
         return self._create_mock_response(ApiData.HTTP_OK, response_data)
@@ -141,4 +140,5 @@ class MockStellarBurgersAPI:
             ingredient["_id"] for ingredient in ingredients_list[:2]
         ]
         return valid_ingredients
+    
     

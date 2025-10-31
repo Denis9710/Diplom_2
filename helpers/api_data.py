@@ -44,3 +44,4 @@ class ApiData:
     NETWORK_ERROR = 0
 
     
+    

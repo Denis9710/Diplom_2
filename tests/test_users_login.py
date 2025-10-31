@@ -7,21 +7,21 @@ from helpers.api_data import ApiData
 @allure.feature("Логин пользователя")
 class TestLoginUser:
     
-    @allure.title("Успешный вход под существующим пользователем")
+    @allure.title("Успешный вход под существующим пользователем - успех 200")
     @allure.description("Тест проверяет успешную авторизацию с правильными учетными данными")
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
     @pytest.mark.positive
-    def test_login_existing_user_success(self, api_client, existing_user_credentials):
+    def test_login_existing_user_success_200(self, api_client, existing_user_credentials):
         with allure.step("Выполнить вход с корректными учетными данными"):
             response = api_client.login_user(
                 email=existing_user_credentials["email"],
                 password=existing_user_credentials["password"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 200"):
             assert response.status_code == ApiData.HTTP_OK, \
-                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
+                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
         
         with allure.step("Проверить структуру ответа"):
             response_data = response.json()
@@ -34,11 +34,11 @@ class TestLoginUser:
         with allure.step("Проверить установку токена в клиенте"):
             assert api_client.token is not None
 
-    @allure.title("Вход с неверным логином и паролем")
+    @allure.title("Вход с неверным логином и паролем - ошибка 401")
     @allure.description("Тест проверяет ошибку при входе с несуществующими учетными данными")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_login_invalid_credentials_error(self, api_client, data_generator):
+    def test_login_invalid_credentials_error_401(self, api_client, data_generator):
         with allure.step("Выполнить вход с неверными учетными данными"):
             user_data = data_generator.generate_user_data()
             response = api_client.login_user(
@@ -46,7 +46,7 @@ class TestLoginUser:
                 password=user_data["password"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 401"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
         
@@ -58,11 +58,11 @@ class TestLoginUser:
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
 
-    @allure.title("Вход с неверным паролем")
+    @allure.title("Вход с неверным паролем - ошибка 401")
     @allure.description("Тест проверяет ошибку при входе с правильным email, но неправильным паролем")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_login_wrong_password_error(self, api_client, existing_user_credentials, data_generator):
+    def test_login_wrong_password_error_401(self, api_client, existing_user_credentials, data_generator):
         with allure.step("Выполнить вход с неправильным паролем"):
             wrong_password = data_generator.generate_password()
             response = api_client.login_user(
@@ -70,7 +70,7 @@ class TestLoginUser:
                 password=wrong_password
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 401"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
         
@@ -82,11 +82,11 @@ class TestLoginUser:
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
 
-    @allure.title("Вход с неверным email")
+    @allure.title("Вход с неверным email - ошибка 401")
     @allure.description("Тест проверяет ошибку при входе с правильным паролем, но неправильным email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_login_wrong_email_error(self, api_client, existing_user_credentials, data_generator):
+    def test_login_wrong_email_error_401(self, api_client, existing_user_credentials, data_generator):
         with allure.step("Выполнить вход с неправильным email"):
             wrong_email = data_generator.generate_email()
             response = api_client.login_user(
@@ -94,7 +94,7 @@ class TestLoginUser:
                 password=existing_user_credentials["password"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 401"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
         
@@ -106,11 +106,11 @@ class TestLoginUser:
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
 
-    @allure.title("Успешный вход после регистрации")
+    @allure.title("Успешный вход после регистрации - успех 200")
     @allure.description("Тест проверяет успешную авторизацию сразу после регистрации пользователя")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.positive
-    def test_login_after_registration_success(self, api_client, data_generator):
+    def test_login_after_registration_success_200(self, api_client, data_generator):
         with allure.step("Зарегистрировать нового пользователя"):
             user_data = data_generator.generate_user_data()
             registration_response = api_client.register_user(
@@ -129,7 +129,7 @@ class TestLoginUser:
                     password=user_data["password"]
                 )
             
-            with allure.step("Проверить статус код ответа"):
+            with allure.step("Проверить статус код ответа 200"):
                 assert login_response.status_code == ApiData.HTTP_OK, \
                     f"Ожидался статус {ApiData.HTTP_OK}, получен {login_response.status_code}"
             

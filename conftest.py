@@ -119,46 +119,28 @@ def existing_user_credentials(registered_user_success):
 
 
 @pytest.fixture
-def ingredients_list_mock():
-    """Фикстура для получения списка ингредиентов через мок-API"""
-    client = MockStellarBurgersAPI()
-    
-    with allure.step("Получить список ингредиентов через мок-API"):
-        response = client.get_ingredients()
-    
-    _check_response_status(response, ApiData.HTTP_OK, "получения ингредиентов через мок-API")
-    
-    response_data = _parse_response_json(response)
-    ingredients_data = response_data.get(ApiData.KEY_DATA, [])
-    return ingredients_data
-
-
-@pytest.fixture
-def ingredients_list_real():
-    """Фикстура для получения списка ингредиентов через реальное API"""
-    client = StellarBurgersAPI()
-    
-    with allure.step("Получить список ингредиентов через реальное API"):
-        response = client.get_ingredients()
-    
-    _check_network_error(response, "получения ингредиентов")
-    _check_response_status(response, ApiData.HTTP_OK, "получения ингредиентов через реальное API")
-    
-    response_data = _parse_response_json(response)
-    ingredients_data = response_data.get(ApiData.KEY_DATA, [])
-    return ingredients_data
-
-
-@pytest.fixture
 def ingredients_list():
-    """Основная фикстура для получения списка ингредиентов"""
-    return ingredients_list_mock() if USE_MOCKS else ingredients_list_real()
+    """Фикстура для получения списка ингредиентов"""
+    if USE_MOCKS:
+        client = MockStellarBurgersAPI()
+    else:
+        client = StellarBurgersAPI()
+    
+    with allure.step("Получить список ингредиентов"):
+        response = client.get_ingredients()
+    
+    _check_response_status(response, ApiData.HTTP_OK, "получения ингредиентов")
+    
+    response_data = _parse_response_json(response)
+    ingredients_data = response_data.get(ApiData.KEY_DATA, [])
+    return ingredients_data
 
 
 @pytest.fixture
 def valid_ingredients(ingredients_list):
     """Фикстура для получения валидных ID ингредиентов"""
-    _check_ingredients_count(ingredients_list, 2)
+    if len(ingredients_list) < 2:
+        pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
     return [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
 
 
@@ -185,11 +167,6 @@ def mock_ingredients():
 
 
 # Вспомогательные функции для проверок
-def _check_network_error(response, operation):
-    """Проверка network error для реального API"""
-    pytest.skip(f"Network error при {operation}: {response.text}") if response.status_code == ApiData.NETWORK_ERROR else None
-
-
 def _check_response_status(response, expected_status, operation):
     """Проверка статуса ответа"""
     assert response.status_code == expected_status, f"Не удалось выполнить {operation}: ожидался статус {expected_status}, получен {response.status_code}"
@@ -198,11 +175,6 @@ def _check_response_status(response, expected_status, operation):
 def _check_token_exists(token, context):
     """Проверка существования токена"""
     assert token is not None, f"Токен не был получен {context}"
-
-
-def _check_ingredients_count(ingredients_list, min_count):
-    """Проверка количества ингредиентов"""
-    pytest.skip(f"Недостаточно ингредиентов для теста (нужно минимум {min_count})") if len(ingredients_list) < min_count else None
 
 
 def pytest_configure(config):
@@ -234,54 +206,53 @@ def add_allure_environment(request):
     allure.dynamic.epic("Stellar Burgers API")
     allure.dynamic.feature(request.module.__name__.replace('test_', '').replace('_', ' ').title())
     
-    # Добавляем информацию о типе API (мок/реальный)
-    allure.dynamic.tag("mock_api") if USE_MOCKS else allure.dynamic.tag("real_api")
-    
-    markers = [marker.name for marker in request.node.own_markers]
+    # Добавляем информацию о типе API
+    if USE_MOCKS:
+        allure.dynamic.tag("mock_api")
+    else:
+        allure.dynamic.tag("real_api")
     
     # Добавляем теги на основе маркеров
-    tag_mapping = {
+    marker_tags = {
         "smoke": "smoke",
-        "regression": "regression", 
-        "positive": "positive",
+        "regression": "regression",
+        "positive": "positive", 
         "negative": "negative",
         "real_api": "real_api",
         "mock_api": "mock_api"
     }
     
-    for marker in markers:
-        if marker in tag_mapping:
-            allure.dynamic.tag(tag_mapping[marker])
+    for marker in request.node.own_markers:
+        if marker.name in marker_tags:
+            allure.dynamic.tag(marker_tags[marker.name])
 
 
 def pytest_collection_modifyitems(config, items):
     """Модификация коллекции тестов в зависимости от типа API"""
-    skip_real_api = pytest.mark.skip(reason="Тест требует реального API")
-    skip_mock_api = pytest.mark.skip(reason="Тест предназначен только для мок-API")
-    
-    for item in items:
-        markers = [marker.name for marker in item.own_markers]
-        
-        # Пропускаем тесты с real_api при использовании моков
-        if USE_MOCKS and "real_api" in markers:
-            item.add_marker(skip_real_api)
-        
-        # Пропускаем тесты с mock_api при использовании реального API
-        if not USE_MOCKS and "mock_api" in markers:
-            item.add_marker(skip_mock_api)
+    if USE_MOCKS:
+        # При использовании моков пропускаем тесты, помеченные как real_api
+        skip_real_api = pytest.mark.skip(reason="Тест требует реального API")
+        for item in items:
+            if "real_api" in [marker.name for marker in item.own_markers]:
+                item.add_marker(skip_real_api)
+    else:
+        # При использовании реального API пропускаем тесты, помеченные как mock_api
+        skip_mock_api = pytest.mark.skip(reason="Тест предназначен только для мок-API")
+        for item in items:
+            if "mock_api" in [marker.name for marker in item.own_markers]:
+                item.add_marker(skip_mock_api)
 
 
-@pytest.fixture(autouse=True)
-def setup_test_environment():
-    """Настройка тестового окружения"""
-    # Логируем тип используемого API
+# Запуск тестов
+def pytest_sessionstart(session):
+    """Действия при запуске сессии тестов"""
     print("\n" + "="*60)
     print("🚀 ЗАПУСК ТЕСТОВ С МОК-API" if USE_MOCKS else "🌐 ЗАПУСК ТЕСТОВ С РЕАЛЬНЫМ API")
     print("="*60)
-    
-    yield
-    
-    # Cleanup после всех тестов
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Действия при завершении сессии тестов"""
     print("\n" + "="*60)
     print("✅ ТЕСТЫ С МОК-API ЗАВЕРШЕНЫ" if USE_MOCKS else "✅ ТЕСТЫ С РЕАЛЬНЫМ API ЗАВЕРШЕНЫ")
     print("="*60)

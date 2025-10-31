@@ -7,12 +7,12 @@ from helpers.api_data import ApiData
 @allure.feature("Создание пользователя")
 class TestCreateUser:
     
-    @allure.title("Создание уникального пользователя")
+    @allure.title("Создание уникального пользователя - успех 200")
     @allure.description("Тест проверяет успешное создание нового пользователя с валидными данными")
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
     @pytest.mark.positive
-    def test_create_unique_user_success(self, api_client, data_generator):
+    def test_create_unique_user_success_200(self, api_client, data_generator):
         token = None
         try:
             with allure.step("Подготовить данные для нового пользователя"):
@@ -25,9 +25,9 @@ class TestCreateUser:
                     name=user_data["name"]
                 )
             
-            with allure.step("Проверить статус код ответа"):
+            with allure.step("Проверить статус код ответа 200"):
                 assert response.status_code == ApiData.HTTP_OK, \
-                    f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
+                    f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
             
             with allure.step("Проверить структуру ответа"):
                 response_data = response.json()
@@ -48,7 +48,7 @@ class TestCreateUser:
     @allure.description("Тест проверяет ошибку 403 при попытке создания пользователя с существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_duplicate_user_forbidden_error(self, api_client, registered_user_success):
+    def test_create_duplicate_user_forbidden_403(self, api_client, registered_user_success):
         with allure.step("Попытаться создать пользователя с существующим email"):
             response = api_client.register_user(
                 email=registered_user_success["email"],
@@ -65,33 +65,11 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.USER_EXISTS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя с существующим email - ошибка 400")
-    @allure.description("Тест проверяет ошибку 400 при попытке создания пользователя с существующим email")
-    @allure.severity(allure.severity_level.CRITICAL)
-    @pytest.mark.negative
-    @pytest.mark.mock_api
-    def test_create_duplicate_user_bad_request_error(self, api_client, registered_user_success):
-        """Этот тест может работать только с мок-API, так как реальное API возвращает 403"""
-        with allure.step("Попытаться создать пользователя с существующим email"):
-            response = api_client.register_user(
-                email=registered_user_success["email"],
-                password=registered_user_success["password"],
-                name=registered_user_success["name"]
-            )
-        
-        with allure.step("Проверить статус код ответа 400"):
-            assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
-                f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
-        
-        with allure.step("Проверить наличие ошибки в ответе"):
-            response_data = response.json()
-            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-
-    @allure.title("Создание пользователя без email")
+    @allure.title("Создание пользователя без email - ошибка 400")
     @allure.description("Тест проверяет ошибку при создании пользователя без email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_user_without_email_error(self, api_client, data_generator):
+    def test_create_user_without_email_error_400(self, api_client, data_generator):
         with allure.step("Создать пользователя без email"):
             user_data = data_generator.generate_user_without_email()
             response = api_client.register_user(
@@ -100,7 +78,7 @@ class TestCreateUser:
                 name=user_data["name"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 400"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
         
@@ -109,11 +87,11 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя без пароля")
+    @allure.title("Создание пользователя без пароля - ошибка 400")
     @allure.description("Тест проверяет ошибку при создании пользователя без пароля")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_user_without_password_error(self, api_client, data_generator):
+    def test_create_user_without_password_error_400(self, api_client, data_generator):
         with allure.step("Создать пользователя без пароля"):
             user_data = data_generator.generate_user_without_password()
             response = api_client.register_user(
@@ -122,7 +100,7 @@ class TestCreateUser:
                 name=user_data["name"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 400"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
         
@@ -131,11 +109,11 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя без имени")
+    @allure.title("Создание пользователя без имени - ошибка 400")
     @allure.description("Тест проверяет ошибку при создании пользователя без имени")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_user_without_name_error(self, api_client, data_generator):
+    def test_create_user_without_name_error_400(self, api_client, data_generator):
         with allure.step("Создать пользователя без имени"):
             user_data = data_generator.generate_user_without_name()
             response = api_client.register_user(
@@ -144,7 +122,7 @@ class TestCreateUser:
                 name=user_data["name"]
             )
         
-        with allure.step("Проверить статус код ответа"):
+        with allure.step("Проверить статус код ответа 400"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
         
