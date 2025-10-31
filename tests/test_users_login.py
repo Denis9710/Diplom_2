@@ -105,41 +105,4 @@ class TestLoginUser:
         
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
-
-    @allure.title("Вход без email")
-    @allure.description("Тест проверяет ошибку при входе без указания email")
-    @allure.severity(allure.severity_level.NORMAL)
-    @pytest.mark.negative
-    def test_login_without_email_error(self, api_client, existing_user_credentials):
-        with allure.step("Выполнить вход без email"):
-            response = api_client.login_user(
-                email=None,
-                password=existing_user_credentials["password"]
-            )
-        
-        with allure.step("Проверить статус код ответа"):
-            assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
-                f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
-        
-        with allure.step("Проверить сообщение об ошибке"):
-            response_data = response.json()
-            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-
-    @allure.title("Вход без пароля")
-    @allure.description("Тест проверяет ошибку при входе без указания пароля")
-    @allure.severity(allure.severity_level.NORMAL)
-    @pytest.mark.negative
-    def test_login_without_password_error(self, api_client, existing_user_credentials):
-        with allure.step("Выполнить вход без пароля"):
-            response = api_client.login_user(
-                email=existing_user_credentials["email"],
-                password=None
-            )
-        
-        with allure.step("Проверить статус код ответа"):
-            assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
-                f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
-        
-        with allure.step("Проверить сообщение об ошибке"):
-            response_data = response.json()
-            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
+            

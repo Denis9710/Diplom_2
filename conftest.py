@@ -50,20 +50,36 @@ def registered_user(api_client, user_credentials):
 
 
 @pytest.fixture
-def authorized_user(api_client, registered_user):
+def authorized_user(api_client, user_credentials):
     """Фикстура для авторизованного пользователя"""
-    with allure.step("Авторизовать пользователя"):
-        login_response = api_client.login_user(
-            email=registered_user["email"],
-            password=registered_user["password"]
+    with allure.step("Создать и авторизовать пользователя"):
+        # Создаем пользователя
+        response = api_client.register_user(
+            email=user_credentials["email"],
+            password=user_credentials["password"],
+            name=user_credentials["name"]
         )
-    
-    assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
-    
-    return {
-        **registered_user,
-        "token": api_client.token
-    }
+        
+        assert response.status_code == ApiData.HTTP_OK, "Не удалось создать пользователя"
+        
+        # Авторизуемся
+        login_response = api_client.login_user(
+            email=user_credentials["email"],
+            password=user_credentials["password"]
+        )
+        
+        assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
+        
+        user_data = {
+            **user_credentials,
+            "token": api_client.token
+        }
+        
+        yield user_data
+        
+        # Удаляем пользователя
+        with allure.step("Удалить пользователя"):
+            api_client.delete_user(api_client.token)
 
 
 @pytest.fixture

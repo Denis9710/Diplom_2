@@ -34,8 +34,11 @@ class StellarBurgersAPI:
         
         response = self.session.post(self.urls.LOGIN, json=payload)
         
-        response_data = response.json()
-        self.token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
+        try:
+            response_data = response.json()
+            self.token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
+        except ValueError:
+            self.token = None
         
         return response
     
@@ -50,7 +53,8 @@ class StellarBurgersAPI:
     def create_order(self, ingredients, token=None):
         """Создание заказа"""
         headers = {}
-        headers["Authorization"] = token
+        if token:
+            headers["Authorization"] = token
         
         payload = {
             "ingredients": ingredients
@@ -69,10 +73,15 @@ class StellarBurgersAPI:
     def get_valid_ingredients(self):
         """Получение валидных ID ингредиентов"""
         response = self.get_ingredients()
-        response_data = response.json()
-        ingredients_list = response_data.get(ApiData.KEY_DATA, [])
         
-        valid_ingredients = [
-            ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]
-        ]
-        return valid_ingredients
+        try:
+            response_data = response.json()
+            ingredients_list = response_data.get(ApiData.KEY_DATA, [])
+            
+            valid_ingredients = [
+                ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]
+            ]
+            return valid_ingredients
+        except (ValueError, KeyError):
+            return []
+        

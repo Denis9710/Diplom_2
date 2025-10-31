@@ -42,12 +42,12 @@ class TestCreateUser:
     @allure.description("Тест проверяет ошибку при попытке создания пользователя с существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_duplicate_user_error(self, api_client, existing_user_credentials):
+    def test_create_duplicate_user_error(self, api_client, registered_user):
         with allure.step("Попытаться создать пользователя с существующим email"):
             response = api_client.register_user(
-                email=existing_user_credentials["email"],
-                password=existing_user_credentials["password"],
-                name=existing_user_credentials["name"]
+                email=registered_user["email"],
+                password=registered_user["password"],
+                name=registered_user["name"]
             )
         
         with allure.step("Проверить статус код ответа"):
@@ -124,3 +124,4 @@ class TestCreateUser:
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
+            

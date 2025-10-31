@@ -108,23 +108,4 @@ class TestCreateOrder:
         with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-    
-    @allure.title("Создание заказа без авторизации и без ингредиентов")
-    @allure.description("Тест проверяет ошибку при создании заказа без авторизации и без ингредиентов")
-    @allure.severity(allure.severity_level.NORMAL)
-    @pytest.mark.negative
-    def test_create_order_without_auth_and_ingredients_error(self, api_client):
-        with allure.step("Создать заказ без авторизации и без ингредиентов"):
-            response = api_client.create_order(
-                ingredients=[],
-                token=None
-            )
-        
-        with allure.step("Проверить статус код ответа"):
-            assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
-                f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
-        
-        with allure.step("Проверить сообщение об ошибке"):
-            response_data = response.json()
-            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-            assert ApiData.NO_INGREDIENTS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
+            

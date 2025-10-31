@@ -18,4 +18,5 @@ class Urls:
     
     # Ingredients endpoints
     INGREDIENTS = f"{BASE_URL}{API_PREFIX}/ingredients"
+
     
