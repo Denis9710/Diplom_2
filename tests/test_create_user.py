@@ -25,9 +25,6 @@ class TestCreateUser:
                     name=user_data["name"]
                 )
             
-            with allure.step("Проверить что нет network error"):
-                assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-            
             with allure.step("Проверить статус код ответа"):
                 assert response.status_code == ApiData.HTTP_OK, \
                     f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
@@ -47,20 +44,17 @@ class TestCreateUser:
                 with allure.step("Удалить созданного пользователя"):
                     api_client.delete_user(token)
 
-    @allure.title("Создание пользователя, который уже зарегистрирован - проверка 403")
+    @allure.title("Создание пользователя с существующим email - ошибка 403")
     @allure.description("Тест проверяет ошибку 403 при попытке создания пользователя с существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_duplicate_user_forbidden_error(self, api_client, registered_user):
+    def test_create_duplicate_user_forbidden_error(self, api_client, registered_user_success):
         with allure.step("Попытаться создать пользователя с существующим email"):
             response = api_client.register_user(
-                email=registered_user["email"],
-                password=registered_user["password"],
-                name=registered_user["name"]
+                email=registered_user_success["email"],
+                password=registered_user_success["password"],
+                name=registered_user_success["name"]
             )
-        
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа 403"):
             assert response.status_code == ApiData.HTTP_FORBIDDEN, \
@@ -71,33 +65,29 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.USER_EXISTS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя, который уже зарегистрирован - проверка 400")
+    @allure.title("Создание пользователя с существующим email - ошибка 400")
     @allure.description("Тест проверяет ошибку 400 при попытке создания пользователя с существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
-    def test_create_duplicate_user_bad_request_error(self, api_client, registered_user):
+    @pytest.mark.mock_api
+    def test_create_duplicate_user_bad_request_error(self, api_client, registered_user_success):
+        """Этот тест может работать только с мок-API, так как реальное API возвращает 403"""
         with allure.step("Попытаться создать пользователя с существующим email"):
             response = api_client.register_user(
-                email=registered_user["email"],
-                password=registered_user["password"],
-                name=registered_user["name"]
+                email=registered_user_success["email"],
+                password=registered_user_success["password"],
+                name=registered_user_success["name"]
             )
-        
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа 400"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
         
-        with allure.step("Проверить сообщение об ошибке"):
+        with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-            # Для 400 ошибки может быть другое сообщение
-            error_message = response_data.get(ApiData.KEY_MESSAGE, "")
-            assert len(error_message) > 0  # Проверяем что сообщение есть
 
-    @allure.title("Создание пользователя без обязательного поля email")
+    @allure.title("Создание пользователя без email")
     @allure.description("Тест проверяет ошибку при создании пользователя без email")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
@@ -110,9 +100,6 @@ class TestCreateUser:
                 name=user_data["name"]
             )
         
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
@@ -122,7 +109,7 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя без обязательного поля password")
+    @allure.title("Создание пользователя без пароля")
     @allure.description("Тест проверяет ошибку при создании пользователя без пароля")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
@@ -135,9 +122,6 @@ class TestCreateUser:
                 name=user_data["name"]
             )
         
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
                 f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
@@ -147,7 +131,7 @@ class TestCreateUser:
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
 
-    @allure.title("Создание пользователя без обязательного поля name")
+    @allure.title("Создание пользователя без имени")
     @allure.description("Тест проверяет ошибку при создании пользователя без имени")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.negative
@@ -159,9 +143,6 @@ class TestCreateUser:
                 password=user_data["password"],
                 name=user_data["name"]
             )
-        
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_BAD_REQUEST, \

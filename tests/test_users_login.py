@@ -19,9 +19,6 @@ class TestLoginUser:
                 password=existing_user_credentials["password"]
             )
         
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_OK, \
                 f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}. Response: {response.text}"
@@ -49,9 +46,6 @@ class TestLoginUser:
                 password=user_data["password"]
             )
         
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
@@ -75,9 +69,6 @@ class TestLoginUser:
                 email=existing_user_credentials["email"],
                 password=wrong_password
             )
-        
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
         
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
@@ -103,9 +94,6 @@ class TestLoginUser:
                 password=existing_user_credentials["password"]
             )
         
-        with allure.step("Проверить что нет network error"):
-            assert response.status_code != ApiData.NETWORK_ERROR, f"Network error: {response.text}"
-        
         with allure.step("Проверить статус код ответа"):
             assert response.status_code == ApiData.HTTP_UNAUTHORIZED, \
                 f"Ожидался статус {ApiData.HTTP_UNAUTHORIZED}, получен {response.status_code}"
@@ -118,4 +106,43 @@ class TestLoginUser:
         with allure.step("Проверить отсутствие токена в клиенте"):
             assert api_client.token is None
 
+    @allure.title("Успешный вход после регистрации")
+    @allure.description("Тест проверяет успешную авторизацию сразу после регистрации пользователя")
+    @allure.severity(allure.severity_level.CRITICAL)
+    @pytest.mark.positive
+    def test_login_after_registration_success(self, api_client, data_generator):
+        with allure.step("Зарегистрировать нового пользователя"):
+            user_data = data_generator.generate_user_data()
+            registration_response = api_client.register_user(
+                email=user_data["email"],
+                password=user_data["password"],
+                name=user_data["name"]
+            )
             
+            assert registration_response.status_code == ApiData.HTTP_OK
+            token = registration_response.json().get(ApiData.KEY_ACCESS_TOKEN)
+        
+        try:
+            with allure.step("Выполнить вход с только что созданными учетными данными"):
+                login_response = api_client.login_user(
+                    email=user_data["email"],
+                    password=user_data["password"]
+                )
+            
+            with allure.step("Проверить статус код ответа"):
+                assert login_response.status_code == ApiData.HTTP_OK, \
+                    f"Ожидался статус {ApiData.HTTP_OK}, получен {login_response.status_code}"
+            
+            with allure.step("Проверить структуру ответа"):
+                login_data = login_response.json()
+                assert login_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
+                assert ApiData.KEY_ACCESS_TOKEN in login_data
+                assert login_data[ApiData.KEY_USER][ApiData.KEY_EMAIL] == user_data["email"]
+                assert login_data[ApiData.KEY_USER][ApiData.KEY_NAME] == user_data["name"]
+        
+        finally:
+            if token:
+                with allure.step("Удалить созданного пользователя"):
+                    api_client.delete_user(token)
+
+                    
