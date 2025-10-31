@@ -39,3 +39,4 @@ class ApiData:
     # Test data constants
     MIN_PASSWORD_LENGTH = 6
     MAX_PASSWORD_LENGTH = 20
+    

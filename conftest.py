@@ -2,6 +2,7 @@ import pytest
 import allure
 from helpers.api_client import StellarBurgersAPI
 from helpers.data_generator import DataGenerator
+from helpers.api_data import ApiData
 
 
 @pytest.fixture
@@ -32,10 +33,10 @@ def registered_user(api_client, user_credentials):
             name=user_credentials["name"]
         )
     
-    # В тестах мы ожидаем успешное создание, иначе тест должен упасть
-    assert response.status_code == 200, f"Не удалось создать пользователя: {response.text}"
+    assert response.status_code == ApiData.HTTP_OK, f"Не удалось создать пользователя: {response.text}"
     
-    token = response.json().get("accessToken")
+    response_data = response.json()
+    token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
     user_data = {
         **user_credentials,
         "token": token,
@@ -44,31 +45,30 @@ def registered_user(api_client, user_credentials):
     
     yield user_data
     
-    # Удаление пользователя после теста
     with allure.step("Удалить созданного пользователя"):
-        if token:
-            api_client.delete_user(token)
+        api_client.delete_user(token)
 
 
 @pytest.fixture
-def authorized_user(registered_user, api_client):
+def authorized_user(api_client, registered_user):
     """Фикстура для авторизованного пользователя"""
-    # Дополнительная авторизация для получения свежего токена
     with allure.step("Авторизовать пользователя"):
         login_response = api_client.login_user(
             email=registered_user["email"],
             password=registered_user["password"]
         )
     
-    assert login_response.status_code == 200, "Не удалось авторизовать пользователя"
+    assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
     
-    registered_user["token"] = api_client.token
-    return registered_user
+    return {
+        **registered_user,
+        "token": api_client.token
+    }
 
 
 @pytest.fixture
 def existing_user_credentials(registered_user):
-    """Фикстура для данных существующего пользователя (без создания нового)"""
+    """Фикстура для данных существующего пользователя"""
     return {
         "email": registered_user["email"],
         "password": registered_user["password"],
@@ -78,13 +78,14 @@ def existing_user_credentials(registered_user):
 
 @pytest.fixture(scope="session")
 def ingredients_list(api_client):
-    """Фикстура для получения списка ингредиентов (сессионная)"""
+    """Фикстура для получения списка ингредиентов"""
     with allure.step("Получить список ингредиентов"):
         response = api_client.get_ingredients()
     
-    assert response.status_code == 200, f"Не удалось получить список ингредиентов: {response.status_code}"
+    assert response.status_code == ApiData.HTTP_OK, f"Не удалось получить ингредиенты: {response.status_code}"
     
-    ingredients_data = response.json().get("data", [])
+    response_data = response.json()
+    ingredients_data = response_data.get(ApiData.KEY_DATA, [])
     return ingredients_data
 
 
@@ -92,7 +93,7 @@ def ingredients_list(api_client):
 def valid_ingredients(ingredients_list):
     """Фикстура для получения валидных ID ингредиентов"""
     assert len(ingredients_list) >= 2, "Недостаточно ингредиентов для теста"
-    return [ingredient["_id"] for ingredient in ingredients_list[:2]]
+    return [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
 
 
 @pytest.fixture
@@ -118,7 +119,7 @@ def pytest_configure(config):
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Хук для интеграции с Allure - установка динамических заголовков"""
+    """Хук для интеграции с Allure"""
     outcome = yield
     rep = outcome.get_result()
     
@@ -129,12 +130,11 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(autouse=True)
-def add_allure_environment(request, api_client):
-    """Автоматическое добавление информации об окружении в Allure"""
+def add_allure_environment(request):
+    """Автоматическое добавление информации в Allure"""
     allure.dynamic.epic("Stellar Burgers API")
     allure.dynamic.feature(request.module.__name__.replace('test_', '').replace('_', ' ').title())
     
-    # Добавляем теги в зависимости от маркеров
     markers = [marker.name for marker in request.node.own_markers]
     if "smoke" in markers:
         allure.dynamic.tag("smoke")

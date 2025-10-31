@@ -34,7 +34,6 @@ class StellarBurgersAPI:
         
         response = self.session.post(self.urls.LOGIN, json=payload)
         
-        # Сохраняем токен, но не делаем условий - проверка в тестах
         response_data = response.json()
         self.token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
         
@@ -51,8 +50,7 @@ class StellarBurgersAPI:
     def create_order(self, ingredients, token=None):
         """Создание заказа"""
         headers = {}
-        if token:
-            headers["Authorization"] = token
+        headers["Authorization"] = token
         
         payload = {
             "ingredients": ingredients
@@ -74,6 +72,7 @@ class StellarBurgersAPI:
         response_data = response.json()
         ingredients_list = response_data.get(ApiData.KEY_DATA, [])
         
-        # Берем первые 2 ингредиента без условий
-        valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
+        valid_ingredients = [
+            ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]
+        ]
         return valid_ingredients
