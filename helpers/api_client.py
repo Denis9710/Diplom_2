@@ -45,16 +45,23 @@ class StellarBurgersAPI:
     @allure.step("Удаление пользователя")
     def delete_user(self, token):
         """Удаление пользователя"""
-        headers = {"Authorization": token}
-        response = self.session.delete(self.urls.USER, headers=headers)
-        return response
+        if not token:
+            return None
+            
+        headers = {"Authorization": f"Bearer {token}"}
+        try:
+            response = self.session.delete(self.urls.USER, headers=headers)
+            return response
+        except requests.RequestException as e:
+            print(f"Error deleting user: {e}")
+            return None
     
     @allure.step("Создание заказа")
     def create_order(self, ingredients, token=None):
         """Создание заказа"""
         headers = {}
         if token:
-            headers["Authorization"] = token
+            headers["Authorization"] = f"Bearer {token}"
         
         payload = {
             "ingredients": ingredients

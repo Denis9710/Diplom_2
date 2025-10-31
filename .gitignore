@@ -50,3 +50,9 @@ claud.md
 .coverage
 htmlcov/
 coverag
+
+# Additional common ignores
+*.pyc
+.python-version
+.tox/
+.coverage.*

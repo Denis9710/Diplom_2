@@ -26,60 +26,68 @@ def user_credentials(data_generator):
 @pytest.fixture
 def registered_user(api_client, user_credentials):
     """Фикстура для успешно созданного пользователя с cleanup"""
-    with allure.step("Создать пользователя через API"):
-        response = api_client.register_user(
-            email=user_credentials["email"],
-            password=user_credentials["password"],
-            name=user_credentials["name"]
-        )
-    
-    assert response.status_code == ApiData.HTTP_OK, f"Не удалось создать пользователя: {response.text}"
-    
-    response_data = response.json()
-    token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
-    user_data = {
-        **user_credentials,
-        "token": token,
-        "response": response
-    }
-    
-    yield user_data
-    
-    with allure.step("Удалить созданного пользователя"):
-        api_client.delete_user(token)
+    token = None
+    try:
+        with allure.step("Создать пользователя через API"):
+            response = api_client.register_user(
+                email=user_credentials["email"],
+                password=user_credentials["password"],
+                name=user_credentials["name"]
+            )
+        
+        assert response.status_code == ApiData.HTTP_OK, f"Не удалось создать пользователя: {response.text}"
+        
+        response_data = response.json()
+        token = response_data.get(ApiData.KEY_ACCESS_TOKEN)
+        user_data = {
+            **user_credentials,
+            "token": token,
+            "response": response
+        }
+        
+        yield user_data
+        
+    finally:
+        if token:
+            with allure.step("Удалить созданного пользователя"):
+                api_client.delete_user(token)
 
 
 @pytest.fixture
 def authorized_user(api_client, user_credentials):
     """Фикстура для авторизованного пользователя"""
-    with allure.step("Создать и авторизовать пользователя"):
-        # Создаем пользователя
-        response = api_client.register_user(
-            email=user_credentials["email"],
-            password=user_credentials["password"],
-            name=user_credentials["name"]
-        )
-        
-        assert response.status_code == ApiData.HTTP_OK, "Не удалось создать пользователя"
-        
-        # Авторизуемся
-        login_response = api_client.login_user(
-            email=user_credentials["email"],
-            password=user_credentials["password"]
-        )
-        
-        assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
-        
-        user_data = {
-            **user_credentials,
-            "token": api_client.token
-        }
-        
-        yield user_data
-        
-        # Удаляем пользователя
-        with allure.step("Удалить пользователя"):
-            api_client.delete_user(api_client.token)
+    token = None
+    try:
+        with allure.step("Создать и авторизовать пользователя"):
+            # Создаем пользователя
+            response = api_client.register_user(
+                email=user_credentials["email"],
+                password=user_credentials["password"],
+                name=user_credentials["name"]
+            )
+            
+            assert response.status_code == ApiData.HTTP_OK, "Не удалось создать пользователя"
+            
+            # Авторизуемся
+            login_response = api_client.login_user(
+                email=user_credentials["email"],
+                password=user_credentials["password"]
+            )
+            
+            assert login_response.status_code == ApiData.HTTP_OK, "Не удалось авторизовать пользователя"
+            
+            user_data = {
+                **user_credentials,
+                "token": api_client.token
+            }
+            token = api_client.token
+            
+            yield user_data
+            
+    finally:
+        if token:
+            with allure.step("Удалить пользователя"):
+                api_client.delete_user(token)
 
 
 @pytest.fixture
@@ -160,3 +168,4 @@ def add_allure_environment(request):
         allure.dynamic.tag("positive")
     if "negative" in markers:
         allure.dynamic.tag("negative")
+        

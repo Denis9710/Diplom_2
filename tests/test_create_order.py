@@ -102,10 +102,11 @@ class TestCreateOrder:
             )
         
         with allure.step("Проверить статус код ответа"):
-            assert response.status_code in [ApiData.HTTP_BAD_REQUEST, ApiData.HTTP_INTERNAL_ERROR], \
-                f"Ожидался статус {ApiData.HTTP_BAD_REQUEST} или {ApiData.HTTP_INTERNAL_ERROR}, получен {response.status_code}"
+            assert response.status_code == ApiData.HTTP_BAD_REQUEST, \
+                f"Ожидался статус {ApiData.HTTP_BAD_REQUEST}, получен {response.status_code}"
         
         with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
+
             

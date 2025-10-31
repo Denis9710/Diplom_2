@@ -33,11 +33,7 @@ class DataGenerator:
     
     def generate_invalid_ingredients(self, count=2):
         """Генерация невалидных ID ингредиентов"""
-        invalid_ids = []
-        for _ in range(count):
-            fake_id = ''.join(random.choices('0123456789abcdef', k=24))
-            invalid_ids.append(fake_id)
-        return invalid_ids
+        return [f"invalid_ingredient_{i}" for i in range(1, count + 1)]
     
     def generate_random_string(self, length=10):
         """Генерация случайной строки"""
@@ -47,7 +43,7 @@ class DataGenerator:
     def generate_user_without_email(self):
         """Генерация данных пользователя без email"""
         return {
-            "email": None,
+            "email": "",
             "password": self.generate_password(),
             "name": self.generate_name()
         }
@@ -56,7 +52,7 @@ class DataGenerator:
         """Генерация данных пользователя без пароля"""
         return {
             "email": self.generate_email(),
-            "password": None,
+            "password": "",
             "name": self.generate_name()
         }
     
@@ -65,8 +61,6 @@ class DataGenerator:
         return {
             "email": self.generate_email(),
             "password": self.generate_password(),
-            "name": None
+            "name": ""
         }
 
-
-data_generator = DataGenerator()
