@@ -26,16 +26,18 @@ class MockStellarBurgersAPI:
     def register_user(self, email, password, name):
         """Мок регистрации пользователя"""
         # Исправленная логика проверки обязательных полей
-        not email or not password or not name and self._create_mock_response(
-            ApiData.HTTP_BAD_REQUEST, 
-            MockResponses.REQUIRED_FIELDS_ERROR
-        )
+        if not email or not password or not name:
+            return self._create_mock_response(
+                ApiData.HTTP_BAD_REQUEST, 
+                MockResponses.REQUIRED_FIELDS_ERROR
+            )
         
         # Исправленная логика проверки существующего пользователя
-        email in self._registered_users and self._create_mock_response(
-            ApiData.HTTP_FORBIDDEN,
-            MockResponses.USER_EXISTS_ERROR
-        )
+        if email in self._registered_users:
+            return self._create_mock_response(
+                ApiData.HTTP_FORBIDDEN,
+                MockResponses.USER_EXISTS_ERROR
+            )
         
         # Создаем пользователя
         self._registered_users.add(email)
@@ -65,10 +67,11 @@ class MockStellarBurgersAPI:
         # Ищем пользователя
         user_data = self._mock_data.get(email)
         # Исправленная логика проверки учетных данных
-        not user_data or user_data["password"] != password and self._create_mock_response(
-            ApiData.HTTP_UNAUTHORIZED,
-            MockResponses.INVALID_CREDENTIALS_ERROR
-        )
+        if not user_data or user_data["password"] != password:
+            return self._create_mock_response(
+                ApiData.HTTP_UNAUTHORIZED,
+                MockResponses.INVALID_CREDENTIALS_ERROR
+            )
         
         # Генерируем токен
         token = f"mock_token_{email}_{password}_{user_data['name']}"
@@ -85,14 +88,18 @@ class MockStellarBurgersAPI:
     def delete_user(self, token):
         """Мок удаления пользователя"""
         # Исправленная логика проверки токена
-        not token and self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
+        if not token:
+            return self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
         
         # Удаляем пользователя по токену
         for email in list(self._mock_data.keys()):
             user_data = self._mock_data[email]
             expected_token = f"mock_token_{email}_{user_data['password']}_{user_data['name']}"
             # Исправленная логика удаления пользователя
-            expected_token == token and (del self._mock_data[email], self._registered_users.discard(email))
+            if expected_token == token:
+                del self._mock_data[email]
+                self._registered_users.discard(email)
+                break
         
         self.token = None
         return self._create_mock_response(ApiData.HTTP_OK, {"success": True})
@@ -101,18 +108,20 @@ class MockStellarBurgersAPI:
     def create_order(self, ingredients, token=None):
         """Мок создания заказа"""
         # Исправленная логика проверки ингредиентов
-        not ingredients and self._create_mock_response(
-            ApiData.HTTP_BAD_REQUEST,
-            MockResponses.NO_INGREDIENTS_ERROR
-        )
+        if not ingredients:
+            return self._create_mock_response(
+                ApiData.HTTP_BAD_REQUEST,
+                MockResponses.NO_INGREDIENTS_ERROR
+            )
         
         # Проверяем валидность ингредиентов
         for ingredient in ingredients:
             # Исправленная логика проверки невалидных ингредиентов
-            ingredient.startswith("invalid_") and self._create_mock_response(
-                ApiData.HTTP_BAD_REQUEST,
-                MockResponses.INVALID_INGREDIENTS_ERROR
-            )
+            if ingredient.startswith("invalid_"):
+                return self._create_mock_response(
+                    ApiData.HTTP_BAD_REQUEST,
+                    MockResponses.INVALID_INGREDIENTS_ERROR
+                )
         
         response_data = MockResponses.SUCCESSFUL_ORDER.copy()
         response_data["order"]["number"] = len(self._mock_data) + 1000

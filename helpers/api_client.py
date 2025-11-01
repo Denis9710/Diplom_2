@@ -65,7 +65,8 @@ class StellarBurgersAPI:
     def delete_user(self, token):
         """Удаление пользователя"""
         # Исправленная логика проверки токена
-        not token and None
+        if not token:
+            return None
         
         headers = {"Authorization": f"Bearer {token}"}
         return self._handle_request('DELETE', self.urls.USER, headers=headers)
@@ -94,7 +95,8 @@ class StellarBurgersAPI:
         response = self.get_ingredients()
         
         # Исправленная логика проверки ответа
-        response.status_code != ApiData.HTTP_OK and []
+        if response.status_code != ApiData.HTTP_OK:
+            return []
         
         try:
             response_data = response.json()
@@ -106,4 +108,5 @@ class StellarBurgersAPI:
             return valid_ingredients
         except (ValueError, KeyError):
             return []
+        
         
