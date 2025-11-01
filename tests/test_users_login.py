@@ -110,39 +110,23 @@ class TestLoginUser:
     @allure.description("Тест проверяет успешную авторизацию сразу после регистрации пользователя")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.positive
-    def test_login_after_registration_success_200(self, api_client, data_generator):
-        with allure.step("Зарегистрировать нового пользователя"):
-            user_data = data_generator.generate_user_data()
-            registration_response = api_client.register_user(
-                email=user_data["email"],
-                password=user_data["password"],
-                name=user_data["name"]
+    def test_login_after_registration_success_200(self, api_client, registered_user_success):
+        with allure.step("Выполнить вход с только что созданными учетными данными"):
+            login_response = api_client.login_user(
+                email=registered_user_success["email"],
+                password=registered_user_success["password"]
             )
-            
-            assert registration_response.status_code == ApiData.HTTP_OK
-            token = registration_response.json().get(ApiData.KEY_ACCESS_TOKEN)
         
-        try:
-            with allure.step("Выполнить вход с только что созданными учетными данными"):
-                login_response = api_client.login_user(
-                    email=user_data["email"],
-                    password=user_data["password"]
-                )
-            
-            with allure.step("Проверить статус код ответа 200"):
-                assert login_response.status_code == ApiData.HTTP_OK, \
-                    f"Ожидался статус {ApiData.HTTP_OK}, получен {login_response.status_code}"
-            
-            with allure.step("Проверить структуру ответа"):
-                login_data = login_response.json()
-                assert login_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
-                assert ApiData.KEY_ACCESS_TOKEN in login_data
-                assert login_data[ApiData.KEY_USER][ApiData.KEY_EMAIL] == user_data["email"]
-                assert login_data[ApiData.KEY_USER][ApiData.KEY_NAME] == user_data["name"]
+        with allure.step("Проверить статус код ответа 200"):
+            assert login_response.status_code == ApiData.HTTP_OK, \
+                f"Ожидался статус {ApiData.HTTP_OK}, получен {login_response.status_code}"
         
-        finally:
-            if token:
-                with allure.step("Удалить созданного пользователя"):
-                    api_client.delete_user(token)
+        with allure.step("Проверить структуру ответа"):
+            login_data = login_response.json()
+            assert login_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
+            assert ApiData.KEY_ACCESS_TOKEN in login_data
+            assert login_data[ApiData.KEY_USER][ApiData.KEY_EMAIL] == registered_user_success["email"]
+            assert login_data[ApiData.KEY_USER][ApiData.KEY_NAME] == registered_user_success["name"]
 
+            
                     

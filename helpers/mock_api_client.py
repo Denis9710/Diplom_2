@@ -1,4 +1,3 @@
-"""Мок-версия API клиента для тестирования без сети"""
 import allure
 from helpers.urls import Urls
 from helpers.api_data import ApiData
@@ -27,18 +26,16 @@ class MockStellarBurgersAPI:
     def register_user(self, email, password, name):
         """Мок регистрации пользователя"""
         # Проверяем обязательные поля
-        if not email or not password or not name:
-            return self._create_mock_response(
-                ApiData.HTTP_BAD_REQUEST, 
-                MockResponses.REQUIRED_FIELDS_ERROR
-            )
+        not email or not password or not name and self._create_mock_response(
+            ApiData.HTTP_BAD_REQUEST, 
+            MockResponses.REQUIRED_FIELDS_ERROR
+        )
         
         # Проверяем не существует ли уже пользователь
-        if email in self._registered_users:
-            return self._create_mock_response(
-                ApiData.HTTP_FORBIDDEN,
-                MockResponses.USER_EXISTS_ERROR
-            )
+        email in self._registered_users and self._create_mock_response(
+            ApiData.HTTP_FORBIDDEN,
+            MockResponses.USER_EXISTS_ERROR
+        )
         
         # Создаем пользователя
         self._registered_users.add(email)
@@ -67,11 +64,10 @@ class MockStellarBurgersAPI:
         
         # Ищем пользователя
         user_data = self._mock_data.get(email)
-        if not user_data or user_data["password"] != password:
-            return self._create_mock_response(
-                ApiData.HTTP_UNAUTHORIZED,
-                MockResponses.INVALID_CREDENTIALS_ERROR
-            )
+        not user_data or user_data["password"] != password and self._create_mock_response(
+            ApiData.HTTP_UNAUTHORIZED,
+            MockResponses.INVALID_CREDENTIALS_ERROR
+        )
         
         # Генерируем токен
         token = f"mock_token_{email}_{password}_{user_data['name']}"
@@ -87,17 +83,13 @@ class MockStellarBurgersAPI:
     @allure.step("Удаление пользователя (MOCK)")
     def delete_user(self, token):
         """Мок удаления пользователя"""
-        if not token:
-            return self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
+        not token and self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
         
         # Удаляем пользователя по токену
         for email in list(self._mock_data.keys()):
             user_data = self._mock_data[email]
             expected_token = f"mock_token_{email}_{user_data['password']}_{user_data['name']}"
-            if expected_token == token:
-                del self._mock_data[email]
-                self._registered_users.discard(email)
-                break
+            expected_token == token and (del self._mock_data[email], self._registered_users.discard(email))
         
         self.token = None
         return self._create_mock_response(ApiData.HTTP_OK, {"success": True})
@@ -105,19 +97,17 @@ class MockStellarBurgersAPI:
     @allure.step("Создание заказа (MOCK)")
     def create_order(self, ingredients, token=None):
         """Мок создания заказа"""
-        if not ingredients:
-            return self._create_mock_response(
-                ApiData.HTTP_BAD_REQUEST,
-                MockResponses.NO_INGREDIENTS_ERROR
-            )
+        not ingredients and self._create_mock_response(
+            ApiData.HTTP_BAD_REQUEST,
+            MockResponses.NO_INGREDIENTS_ERROR
+        )
         
         # Проверяем валидность ингредиентов
         for ingredient in ingredients:
-            if ingredient.startswith("invalid_"):
-                return self._create_mock_response(
-                    ApiData.HTTP_BAD_REQUEST,
-                    MockResponses.INVALID_INGREDIENTS_ERROR
-                )
+            ingredient.startswith("invalid_") and self._create_mock_response(
+                ApiData.HTTP_BAD_REQUEST,
+                MockResponses.INVALID_INGREDIENTS_ERROR
+            )
         
         response_data = MockResponses.SUCCESSFUL_ORDER.copy()
         response_data["order"]["number"] = len(self._mock_data) + 1000

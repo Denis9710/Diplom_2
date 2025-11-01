@@ -13,36 +13,27 @@ class TestCreateUser:
     @pytest.mark.smoke
     @pytest.mark.positive
     def test_create_unique_user_success_200(self, api_client, data_generator):
-        token = None
-        try:
-            with allure.step("Подготовить данные для нового пользователя"):
-                user_data = data_generator.generate_user_data()
-            
-            with allure.step("Отправить запрос на создание пользователя"):
-                response = api_client.register_user(
-                    email=user_data["email"],
-                    password=user_data["password"],
-                    name=user_data["name"]
-                )
-            
-            with allure.step("Проверить статус код ответа 200"):
-                assert response.status_code == ApiData.HTTP_OK, \
-                    f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
-            
-            with allure.step("Проверить структуру ответа"):
-                response_data = response.json()
-                assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
-                assert ApiData.KEY_ACCESS_TOKEN in response_data
-                assert ApiData.KEY_REFRESH_TOKEN in response_data
-                assert response_data[ApiData.KEY_USER][ApiData.KEY_EMAIL] == user_data["email"]
-                assert response_data[ApiData.KEY_USER][ApiData.KEY_NAME] == user_data["name"]
-                
-                token = response_data[ApiData.KEY_ACCESS_TOKEN]
-                
-        finally:
-            if token:
-                with allure.step("Удалить созданного пользователя"):
-                    api_client.delete_user(token)
+        with allure.step("Подготовить данные для нового пользователя"):
+            user_data = data_generator.generate_user_data()
+        
+        with allure.step("Отправить запрос на создание пользователя"):
+            response = api_client.register_user(
+                email=user_data["email"],
+                password=user_data["password"],
+                name=user_data["name"]
+            )
+        
+        with allure.step("Проверить статус код ответа 200"):
+            assert response.status_code == ApiData.HTTP_OK, \
+                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
+        
+        with allure.step("Проверить структуру ответа"):
+            response_data = response.json()
+            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
+            assert ApiData.KEY_ACCESS_TOKEN in response_data
+            assert ApiData.KEY_REFRESH_TOKEN in response_data
+            assert response_data[ApiData.KEY_USER][ApiData.KEY_EMAIL] == user_data["email"]
+            assert response_data[ApiData.KEY_USER][ApiData.KEY_NAME] == user_data["name"]
 
     @allure.title("Создание пользователя с существующим email - ошибка 403")
     @allure.description("Тест проверяет ошибку 403 при попытке создания пользователя с существующим email")
@@ -130,5 +121,4 @@ class TestCreateUser:
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
             assert ApiData.REQUIRED_FIELDS_MESSAGE in response_data.get(ApiData.KEY_MESSAGE, "")
-
             

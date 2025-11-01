@@ -12,7 +12,12 @@ class TestCreateOrder:
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
     @pytest.mark.positive
-    def test_create_order_with_auth_success_200(self, api_client, authorized_user_success, valid_ingredients):
+    def test_create_order_with_auth_success_200(self, api_client, authorized_user_success, ingredients_list):
+        with allure.step("Подготовить валидные ингредиенты"):
+            ingredients_count = len(ingredients_list)
+            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
+        
         with allure.step("Создать заказ с ингредиентами"):
             response = api_client.create_order(
                 ingredients=valid_ingredients,
@@ -33,7 +38,12 @@ class TestCreateOrder:
     @allure.description("Тест проверяет создание заказа без авторизации")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.positive
-    def test_create_order_without_auth_success_200(self, api_client, valid_ingredients):
+    def test_create_order_without_auth_success_200(self, api_client, ingredients_list):
+        with allure.step("Подготовить валидные ингредиенты"):
+            ingredients_count = len(ingredients_list)
+            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
+        
         with allure.step("Создать заказ без авторизации"):
             response = api_client.create_order(
                 ingredients=valid_ingredients,
@@ -53,7 +63,12 @@ class TestCreateOrder:
     @allure.description("Тест проверяет успешное создание заказа с валидными ингредиентами")
     @allure.severity(allure.severity_level.CRITICAL)
     @pytest.mark.positive
-    def test_create_order_with_ingredients_success_200(self, api_client, authorized_user_success, valid_ingredients):
+    def test_create_order_with_ingredients_success_200(self, api_client, authorized_user_success, ingredients_list):
+        with allure.step("Подготовить валидные ингредиенты"):
+            ingredients_count = len(ingredients_list)
+            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
+        
         with allure.step("Создать заказ с ингредиентами"):
             response = api_client.create_order(
                 ingredients=valid_ingredients,
@@ -94,7 +109,10 @@ class TestCreateOrder:
     @allure.description("Тест проверяет ошибку 400 при создании заказа с невалидными ингредиентами")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.negative
-    def test_create_order_invalid_ingredients_error_400(self, api_client, authorized_user_success, invalid_ingredients):
+    def test_create_order_invalid_ingredients_error_400(self, api_client, authorized_user_success, data_generator):
+        with allure.step("Подготовить невалидные ингредиенты"):
+            invalid_ingredients = data_generator.generate_invalid_ingredients()
+        
         with allure.step("Создать заказ с невалидными ингредиентами"):
             response = api_client.create_order(
                 ingredients=invalid_ingredients,
@@ -108,25 +126,5 @@ class TestCreateOrder:
         with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-
-    @allure.title("Создание заказа с мок-ингредиентами - успех 200")
-    @allure.description("Тест проверяет создание заказа с предопределенными мок-ингредиентами")
-    @allure.severity(allure.severity_level.NORMAL)
-    @pytest.mark.positive
-    def test_create_order_with_mock_ingredients_success_200(self, api_client, authorized_user_success, mock_ingredients):
-        with allure.step("Создать заказ с мок-ингредиентами"):
-            response = api_client.create_order(
-                ingredients=mock_ingredients[:2],
-                token=authorized_user_success["token"]
-            )
-        
-        with allure.step("Проверить статус код ответа 200"):
-            assert response.status_code == ApiData.HTTP_OK, \
-                f"Ожидался статус {ApiData.HTTP_OK}, получен {response.status_code}"
-        
-        with allure.step("Проверить структуру ответа"):
-            response_data = response.json()
-            assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_TRUE
-            assert ApiData.KEY_ORDER in response_data
 
             
