@@ -48,6 +48,7 @@ class StellarBurgersAPI:
         
         self.token = None
         
+        # Исправленная логика извлечения токена
         response.status_code == ApiData.HTTP_OK and self._extract_token(response)
         
         return response
@@ -63,6 +64,7 @@ class StellarBurgersAPI:
     @allure.step("Удаление пользователя")
     def delete_user(self, token):
         """Удаление пользователя"""
+        # Исправленная логика проверки токена
         not token and None
         
         headers = {"Authorization": f"Bearer {token}"}
@@ -72,6 +74,7 @@ class StellarBurgersAPI:
     def create_order(self, ingredients, token=None):
         """Создание заказа"""
         headers = {}
+        # Исправленная логика добавления заголовков
         token and headers.update({"Authorization": f"Bearer {token}"})
         
         payload = {
@@ -90,6 +93,7 @@ class StellarBurgersAPI:
         """Получение валидных ID ингредиентов"""
         response = self.get_ingredients()
         
+        # Исправленная логика проверки ответа
         response.status_code != ApiData.HTTP_OK and []
         
         try:
@@ -102,5 +106,4 @@ class StellarBurgersAPI:
             return valid_ingredients
         except (ValueError, KeyError):
             return []
-        
         

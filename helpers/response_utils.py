@@ -19,3 +19,4 @@ def check_response_status(response, expected_status, operation):
 def check_token_exists(token, context):
     """Проверка существования токена"""
     assert token is not None, f"Токен не был получен {context}"
+    

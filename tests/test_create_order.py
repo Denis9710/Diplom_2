@@ -15,7 +15,7 @@ class TestCreateOrder:
     def test_create_order_with_auth_success_200(self, api_client, authorized_user_success, ingredients_list):
         with allure.step("Подготовить валидные ингредиенты"):
             ingredients_count = len(ingredients_list)
-            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            ingredients_count >= 2 or pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
             valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
         
         with allure.step("Создать заказ с ингредиентами"):
@@ -41,7 +41,7 @@ class TestCreateOrder:
     def test_create_order_without_auth_success_200(self, api_client, ingredients_list):
         with allure.step("Подготовить валидные ингредиенты"):
             ingredients_count = len(ingredients_list)
-            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            ingredients_count >= 2 or pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
             valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
         
         with allure.step("Создать заказ без авторизации"):
@@ -66,7 +66,7 @@ class TestCreateOrder:
     def test_create_order_with_ingredients_success_200(self, api_client, authorized_user_success, ingredients_list):
         with allure.step("Подготовить валидные ингредиенты"):
             ingredients_count = len(ingredients_list)
-            ingredients_count < 2 and pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
+            ingredients_count >= 2 or pytest.skip("Недостаточно ингредиентов для теста (нужно минимум 2)")
             valid_ingredients = [ingredient[ApiData.KEY_ID] for ingredient in ingredients_list[:2]]
         
         with allure.step("Создать заказ с ингредиентами"):
@@ -126,5 +126,5 @@ class TestCreateOrder:
         with allure.step("Проверить наличие ошибки в ответе"):
             response_data = response.json()
             assert response_data[ApiData.KEY_SUCCESS] == ApiData.SUCCESS_FALSE
-
+            
             

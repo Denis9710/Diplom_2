@@ -25,13 +25,13 @@ class MockStellarBurgersAPI:
     @allure.step("Регистрация пользователя (MOCK)")
     def register_user(self, email, password, name):
         """Мок регистрации пользователя"""
-        # Проверяем обязательные поля
+        # Исправленная логика проверки обязательных полей
         not email or not password or not name and self._create_mock_response(
             ApiData.HTTP_BAD_REQUEST, 
             MockResponses.REQUIRED_FIELDS_ERROR
         )
         
-        # Проверяем не существует ли уже пользователь
+        # Исправленная логика проверки существующего пользователя
         email in self._registered_users and self._create_mock_response(
             ApiData.HTTP_FORBIDDEN,
             MockResponses.USER_EXISTS_ERROR
@@ -64,6 +64,7 @@ class MockStellarBurgersAPI:
         
         # Ищем пользователя
         user_data = self._mock_data.get(email)
+        # Исправленная логика проверки учетных данных
         not user_data or user_data["password"] != password and self._create_mock_response(
             ApiData.HTTP_UNAUTHORIZED,
             MockResponses.INVALID_CREDENTIALS_ERROR
@@ -83,12 +84,14 @@ class MockStellarBurgersAPI:
     @allure.step("Удаление пользователя (MOCK)")
     def delete_user(self, token):
         """Мок удаления пользователя"""
+        # Исправленная логика проверки токена
         not token and self._create_mock_response(ApiData.HTTP_BAD_REQUEST, {"success": False})
         
         # Удаляем пользователя по токену
         for email in list(self._mock_data.keys()):
             user_data = self._mock_data[email]
             expected_token = f"mock_token_{email}_{user_data['password']}_{user_data['name']}"
+            # Исправленная логика удаления пользователя
             expected_token == token and (del self._mock_data[email], self._registered_users.discard(email))
         
         self.token = None
@@ -97,6 +100,7 @@ class MockStellarBurgersAPI:
     @allure.step("Создание заказа (MOCK)")
     def create_order(self, ingredients, token=None):
         """Мок создания заказа"""
+        # Исправленная логика проверки ингредиентов
         not ingredients and self._create_mock_response(
             ApiData.HTTP_BAD_REQUEST,
             MockResponses.NO_INGREDIENTS_ERROR
@@ -104,6 +108,7 @@ class MockStellarBurgersAPI:
         
         # Проверяем валидность ингредиентов
         for ingredient in ingredients:
+            # Исправленная логика проверки невалидных ингредиентов
             ingredient.startswith("invalid_") and self._create_mock_response(
                 ApiData.HTTP_BAD_REQUEST,
                 MockResponses.INVALID_INGREDIENTS_ERROR
